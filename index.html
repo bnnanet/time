@@ -1,201 +1,299 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>time: quick time and zone info</title>
-        <link href="./mvp.css" rel="stylesheet" />
-        <style>
-            input {
-                width: 90%;
-                max-width: 100%;
-            }
-        </style>
-    </head>
-    <body>
-        <main>
-            <section>
-                <header>
-                    <h2>Quick Time and Zone Info</h2>
-                    <h2 data-id="locale-time"></h2>
-                    <p>
-                        <em data-id="date"></em><br /><span
-                            data-id="time"
-                        ></span>
-                    </p>
-                </header>
-                <form method="dialog">
-                    <label>Time: <input name="time" /></label>
-                    <label>Offset: <input name="offset" /></label>
-                    <label>Zone: <input name="zone" /></label>
-                    <label>UTC: <input name="utc" /></label>
-                </form>
-            </section>
-        </main>
-        <footer>
-            <hr />
-            <p>
-                Made by
-                <a href="https://bnna.net" target="_blank">bnna.net</a>
-                |
-                <a href="https://github.com/bnnanet/time" target="_blank"
-                    >Git Source ↗</a
-                >
-            </p>
-        </footer>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>time: quick time and zone info</title>
+		<link href="./mvp.css" rel="stylesheet" />
+		<style>
+			input {
+				width: 90%;
+				max-width: 100%;
+			}
 
-        <script>
-            console.info(`time v1.0.0 (2025-02-08)`);
+			[data-id="copied-harder"] {
+				opacity: 0;
+				color: #2196f3; /* Friendly blue */
+				font-weight: bold;
+				transition:
+					opacity 0.5s ease-out,
+					visibility 0.5s ease-out;
+			}
+			/* When hidden is removed (element is shown) */
+			[data-id="copied-harder"]:not([hidden]) {
+				opacity: 1;
+				display: inline-block;
+				animation:
+					shake 0.5s ease-in-out,
+					color-change 0.15s ease-in-out 0.5s forwards;
+			}
 
-            function $(cssSelector, $parent = document) {
-                let $child = $parent.querySelector(cssSelector);
-                return $child;
-            }
+			/* Shaking animation */
+			@keyframes shake {
+				0%,
+				100% {
+					transform: translateX(0);
+				}
+				10%,
+				30%,
+				50%,
+				70%,
+				90% {
+					transform: translateX(-5px);
+				}
+				20%,
+				40%,
+				60%,
+				80% {
+					transform: translateX(5px);
+				}
+			}
 
-            //function $$(cssSelector, $parent = document) {
-            //    let nodeList = $parent.querySelectorAll(cssSelector);
-            //    let $children = Array.from(nodeList);
-            //    return $children;
-            //}
+			/* Color transition (delayed) */
+			@keyframes color-change {
+				from {
+					color: #2196f3;
+				} /* Starts as blue */
+				to {
+					color: #ff9800;
+				} /* Transitions to party orange */
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<section>
+				<header>
+					<h2>Quick Time and Zone Info</h2>
+					<h2 data-id="locale-time"></h2>
+					<p>
+						<em data-id="date"></em><br /><span
+							data-id="time"
+						></span>
+					</p>
+				</header>
+				<form method="dialog">
+					<em data-id="copyhelp">Click to Copy</em>
+					<em data-id="copiedhelp" style="color: #2196f3" hidden
+						>Copied</em
+					>
+					<em data-id="copied-harder" hidden>Copying intensifies!</em>
+					<label>Time <input name="time" /></label>
+					<label>Offset <input name="offset" /></label>
+					<label>Zone <input name="zone" /></label>
+					<label>Local <input name="local" /></label>
+					<label>UTC <input name="utc" /></label>
+				</form>
+			</section>
+		</main>
+		<footer>
+			<hr />
+			<p>
+				Made by
+				<a href="https://bnna.net" target="_blank">bnna.net</a>
+				|
+				<a href="https://github.com/bnnanet/time" target="_blank"
+					>Git Source ↗</a
+				>
+			</p>
+		</footer>
 
-            function getZoneTime(d) {
-                let hour = d.getHours();
-                let hourStr = p2(hour);
-                let minute = d.getMinutes();
-                let minuteStr = p2(minute);
-                let second = d.getSeconds();
-                let secondStr = p2(second);
+		<script>
+			console.info(`time v1.2.0 (2025-02-08)`);
 
-                let isoTime = `${hourStr}:${minuteStr}:${secondStr}`;
-                return isoTime;
-            }
+			function $(cssSelector, $parent = document) {
+				let $child = $parent.querySelector(cssSelector);
+				return $child;
+			}
 
-            function getLocaleDate(d) {
-                let year = d.getFullYear();
-                let month = d.getMonth();
-                let monthStr = p2(month + 1);
-                let day = d.getDate();
-                let dayStr = p2(day);
+			//function $$(cssSelector, $parent = document) {
+			//    let nodeList = $parent.querySelectorAll(cssSelector);
+			//    let $children = Array.from(nodeList);
+			//    return $children;
+			//}
 
-                let isoDate = `${year}-${monthStr}-${dayStr}`;
-                return isoDate;
-            }
+			function getZoneTime(d) {
+				let hour = d.getHours();
+				let hourStr = p2(hour);
+				let minute = d.getMinutes();
+				let minuteStr = p2(minute);
+				let second = d.getSeconds();
+				let secondStr = p2(second);
 
-            function getUtcOffset(d) {
-                // tz offset is inverted - just one of those things
-                // see https://stackoverflow.com/a/21102476/151312
-                let tzOffset = -1 * d.getTimezoneOffset();
+				let isoTime = `${hourStr}:${minuteStr}:${secondStr}`;
+				return isoTime;
+			}
 
-                let sign = ""; // negative ints alread get '-' prefix
-                if (tzOffset === 0) {
-                    sign = " ";
-                } else if (tzOffset > 0) {
-                    sign = "+";
-                }
+			function getLocaleDate(d) {
+				let year = d.getFullYear();
+				let month = d.getMonth();
+				let monthStr = p2(month + 1);
+				let day = d.getDate();
+				let dayStr = p2(day);
 
-                let hOffset = tzOffset / 60;
-                let hOffsetStr = hOffset.toString();
-                hOffsetStr = p2(hOffsetStr);
+				let isoDate = `${year}-${monthStr}-${dayStr}`;
+				return isoDate;
+			}
 
-                let mOffset = Math.abs(tzOffset % 60);
-                let mOffsetStr = mOffset.toString();
-                mOffsetStr = p2(mOffsetStr);
+			function getUtcOffset(d) {
+				// tz offset is inverted - just one of those things
+				// see https://stackoverflow.com/a/21102476/151312
+				let tzOffset = -1 * d.getTimezoneOffset();
 
-                let offset = `${sign}${hOffsetStr}:${mOffsetStr}`;
-                return offset;
-            }
+				let sign = ""; // negative ints alread get '-' prefix
+				if (tzOffset === 0) {
+					sign = " ";
+				} else if (tzOffset > 0) {
+					sign = "+";
+				}
 
-            function p2(x) {
-                if (x >= 0) {
-                    let padded = String(x);
-                    padded = padded.padStart(2, "0");
-                    return padded;
-                }
+				let hOffset = tzOffset / 60;
+				let hOffsetStr = hOffset.toString();
+				hOffsetStr = p2(hOffsetStr);
 
-                x = Math.abs(x);
-                let padded = String(x);
-                padded = padded.padStart(2, "0");
-                return `-${padded}`;
-            }
+				let mOffset = Math.abs(tzOffset % 60);
+				let mOffsetStr = mOffset.toString();
+				mOffsetStr = p2(mOffsetStr);
 
-            //function p3(x) {
-            //    return String(x).padStart(3, "0");
-            //}
+				let offset = `${sign}${hOffsetStr}:${mOffsetStr}`;
+				return offset;
+			}
 
-            let timeFormatter = new Intl.DateTimeFormat(navigator.language, {
-                hour: "numeric",
-                minute: "numeric",
-                //second: "numeric",
-                hour12: true,
-            });
+			function p2(x) {
+				if (x >= 0) {
+					let padded = String(x);
+					padded = padded.padStart(2, "0");
+					return padded;
+				}
 
-            function update(d) {
-                {
-                    let isoDatetime = d.toISOString();
-                    isoDatetime = isoDatetime.replace(/\.0\d\dZ$/, ".000Z");
-                    $('[name="utc"]').value = isoDatetime;
-                }
+				x = Math.abs(x);
+				let padded = String(x);
+				padded = padded.padStart(2, "0");
+				return `-${padded}`;
+			}
 
-                {
-                    let time = getZoneTime(d);
-                    $('[name="time"]').value = time;
+			//function p3(x) {
+			//    return String(x).padStart(3, "0");
+			//}
 
-                    let date = getLocaleDate(d);
-                    $('[data-id="date"]').textContent = date;
+			let timeFormatter = new Intl.DateTimeFormat(navigator.language, {
+				hour: "numeric",
+				minute: "numeric",
+				//second: "numeric",
+				hour12: true,
+			});
 
-                    let offset = getUtcOffset(d);
-                    $('[name="offset"]').value = offset;
-                }
+			function update(d) {
+				{
+					let isoDatetime = d.toISOString();
+					isoDatetime = isoDatetime.replace(/\.0\d\dZ$/, ".000Z");
+					$('[name="utc"]').value = isoDatetime;
+				}
 
-                {
-                    let zoneinfo = new Intl.DateTimeFormat().resolvedOptions()
-                        .timeZone;
-                    $('[name="zone"]').value = zoneinfo;
-                }
-            }
+				{
+					let time = getZoneTime(d);
+					$('[name="time"]').value = time;
 
-            function sleep(ms) {
-                return new Promise(function (resolve) {
-                    setTimeout(resolve, ms);
-                });
-            }
+					let date = getLocaleDate(d);
+					$('[data-id="date"]').textContent = date;
 
-            async function main() {
-                let preview = "";
+					let offset = getUtcOffset(d);
+					$('[name="offset"]').value = offset;
 
-                for (;;) {
-                    let d = new Date();
+					offset = offset.replace(":", "");
+					offset = offset.replace(" 0000", "Z");
+					$('[name="local"]').value = `${date}T${time}.000${offset}`;
+				}
 
-                    update(d);
+				{
+					let zoneinfo = new Intl.DateTimeFormat().resolvedOptions()
+						.timeZone;
+					$('[name="zone"]').value = zoneinfo;
+				}
+			}
 
-                    {
-                        let _preview = timeFormatter.format(d);
-                        if (preview !== _preview) {
-                            preview = _preview;
-                            $('[data-id="locale-time"]').textContent = preview;
+			function sleep(ms) {
+				return new Promise(function (resolve) {
+					setTimeout(resolve, ms);
+				});
+			}
 
-                            let d2 = new Date(d);
-                            d2.setSeconds(0);
-                            let time = getZoneTime(d2);
-                            let offset = getUtcOffset(d2);
-                            offset = offset.replace(":", "");
-                            offset = offset.replace(" 0000", "Z");
-                            $('[data-id="time"]').textContent =
-                                `${time}${offset}`;
-                        }
-                    }
+			let _copyTimeout;
+			function copyInputValue(ev) {
+				if (!ev.target.matches("input")) {
+					return;
+				}
 
-                    let ms = d.valueOf();
-                    ms = ms % 1000;
-                    let next = 1000 - ms;
-                    await sleep(next);
-                }
-            }
+				let $copyHelp = $('[data-id="copyhelp"]');
+				let $copiedHelp = $('[data-id="copiedhelp"]');
+				let $copiedHarder = $('[data-id="copied-harder"]');
 
-            main().catch(function (err) {
-                console.error(`Main Error:`);
-                console.error(err);
-            });
-        </script>
-    </body>
+				setClipboard(ev.target.value);
+				clearTimeout(_copyTimeout);
+				setTimeout(function () {
+					console.log("copied!");
+					$copyHelp.hidden = true;
+					let recentlyCopied =
+						!$copiedHelp.hidden || !$copiedHarder.hidden;
+					$copiedHelp.hidden = !$copiedHelp.hidden;
+					if (recentlyCopied) {
+						$copiedHarder.hidden = !$copiedHarder.hidden;
+					}
+				}, 100);
+				_copyTimeout = setTimeout(function () {
+					$copyHelp.hidden = false;
+					$copiedHelp.hidden = true;
+					$copiedHarder.hidden = true;
+				}, 2000);
+			}
+
+			async function setClipboard(text) {
+				const type = "text/plain";
+				const clipboardItemData = {
+					[type]: text,
+				};
+				const clipboardItem = new ClipboardItem(clipboardItemData);
+				await navigator.clipboard.write([clipboardItem]);
+			}
+
+			async function main() {
+				document.addEventListener("click", copyInputValue);
+
+				let preview = "";
+
+				for (;;) {
+					let d = new Date();
+
+					update(d);
+
+					{
+						let _preview = timeFormatter.format(d);
+						if (preview !== _preview) {
+							preview = _preview;
+							$('[data-id="locale-time"]').textContent = preview;
+
+							let d2 = new Date(d);
+							d2.setSeconds(0);
+							let time = getZoneTime(d2);
+							let offset = getUtcOffset(d2);
+							offset = offset.replace(":", "");
+							offset = offset.replace(" 0000", "Z");
+							$('[data-id="time"]').textContent =
+								`${time}${offset}`;
+						}
+					}
+
+					let ms = d.valueOf();
+					ms = ms % 1000;
+					let next = 1000 - ms;
+					await sleep(next);
+				}
+			}
+
+			main().catch(function (err) {
+				console.error(`Main Error:`);
+				console.error(err);
+			});
+		</script>
+	</body>
 </html>

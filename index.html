@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>time: quick time and zone info</title>
+        <link href="./mvp.css" rel="stylesheet" />
+        <style>
+            input {
+                width: 90%;
+                max-width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <section>
+                <header>
+                    <h2>Quick Time and Zone Info</h2>
+                    <h2 data-id="locale-time"></h2>
+                    <p>
+                        <em data-id="date"></em><br /><span
+                            data-id="time"
+                        ></span>
+                    </p>
+                </header>
+                <form method="dialog">
+                    <label>Time: <input name="time" /></label>
+                    <label>Offset: <input name="offset" /></label>
+                    <label>Zone: <input name="zone" /></label>
+                    <label>UTC: <input name="utc" /></label>
+                </form>
+            </section>
+        </main>
+
+        <script>
+            console.info(`time v1.0.0 (2025-02-08)`);
+
+            function $(cssSelector, $parent = document) {
+                let $child = $parent.querySelector(cssSelector);
+                return $child;
+            }
+
+            //function $$(cssSelector, $parent = document) {
+            //    let nodeList = $parent.querySelectorAll(cssSelector);
+            //    let $children = Array.from(nodeList);
+            //    return $children;
+            //}
+
+            function getZoneTime(d) {
+                let hour = d.getHours();
+                let hourStr = p2(hour);
+                let minute = d.getMinutes();
+                let minuteStr = p2(minute);
+                let second = d.getSeconds();
+                let secondStr = p2(second);
+
+                let isoTime = `${hourStr}:${minuteStr}:${secondStr}`;
+                return isoTime;
+            }
+
+            function getLocaleDate(d) {
+                let year = d.getFullYear();
+                let month = d.getMonth();
+                let monthStr = p2(month + 1);
+                let day = d.getDate();
+                let dayStr = p2(day);
+
+                let isoDate = `${year}-${monthStr}-${dayStr}`;
+                return isoDate;
+            }
+
+            function getUtcOffset(d) {
+                // tz offset is inverted - just one of those things
+                // see https://stackoverflow.com/a/21102476/151312
+                let tzOffset = -1 * d.getTimezoneOffset();
+
+                let sign = ""; // negative ints alread get '-' prefix
+                if (tzOffset === 0) {
+                    sign = " ";
+                } else if (tzOffset > 0) {
+                    sign = "+";
+                }
+
+                let hOffset = tzOffset / 60;
+                let hOffsetStr = hOffset.toString();
+                hOffsetStr = p2(hOffsetStr);
+
+                let mOffset = Math.abs(tzOffset % 60);
+                let mOffsetStr = mOffset.toString();
+                mOffsetStr = p2(mOffsetStr);
+
+                let offset = `${sign}${hOffsetStr}:${mOffsetStr}`;
+                return offset;
+            }
+
+            function p2(x) {
+                if (x >= 0) {
+                    let padded = String(x);
+                    padded = padded.padStart(2, "0");
+                    return padded;
+                }
+
+                x = Math.abs(x);
+                let padded = String(x);
+                padded = padded.padStart(2, "0");
+                return `-${padded}`;
+            }
+
+            //function p3(x) {
+            //    return String(x).padStart(3, "0");
+            //}
+
+            let timeFormatter = new Intl.DateTimeFormat(navigator.language, {
+                hour: "numeric",
+                minute: "numeric",
+                //second: "numeric",
+                hour12: true,
+            });
+
+            function update(d) {
+                {
+                    let isoDatetime = d.toISOString();
+                    isoDatetime = isoDatetime.replace(/\.0\d\dZ$/, ".000Z");
+                    $('[name="utc"]').value = isoDatetime;
+                }
+
+                {
+                    let time = getZoneTime(d);
+                    $('[name="time"]').value = time;
+
+                    let date = getLocaleDate(d);
+                    $('[data-id="date"]').textContent = date;
+
+                    let offset = getUtcOffset(d);
+                    $('[name="offset"]').value = offset;
+                }
+
+                {
+                    let zoneinfo = new Intl.DateTimeFormat().resolvedOptions()
+                        .timeZone;
+                    $('[name="zone"]').value = zoneinfo;
+                }
+            }
+
+            function sleep(ms) {
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, ms);
+                });
+            }
+
+            async function main() {
+                let preview = "";
+
+                for (;;) {
+                    let d = new Date();
+
+                    update(d);
+
+                    {
+                        let _preview = timeFormatter.format(d);
+                        if (preview !== _preview) {
+                            preview = _preview;
+                            $('[data-id="locale-time"]').textContent = preview;
+
+                            let d2 = new Date(d);
+                            d2.setSeconds(0);
+                            let time = getZoneTime(d2);
+                            let offset = getUtcOffset(d2);
+                            offset = offset.replace(":", "");
+                            offset = offset.replace(" 0000", "Z");
+                            $('[data-id="time"]').textContent =
+                                `${time}${offset}`;
+                        }
+                    }
+
+                    let ms = d.valueOf();
+                    ms = ms % 1000;
+                    let next = 1000 - ms;
+                    await sleep(next);
+                }
+            }
+
+            main().catch(function (err) {
+                console.error(`Main Error:`);
+                console.error(err);
+            });
+        </script>
+    </body>
+</html>
